@@ -4,10 +4,11 @@ import (
 	"363project/controller/service"
 	"fmt"
 	"net/http"
+	"strconv"
 )
 
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
-	// Ambil ID dri middleware
+	// Ambil ID dari middleware
 	userIdCtx := r.Context().Value("id")
 
 	if userIdCtx == "" || userIdCtx == nil {
@@ -31,4 +32,23 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Fprintf(w, "Welcome Back! Anda login sebagai User ID: %v", userIdCtx)
 	}
+}
+
+func CheckBalanceHandler(w http.ResponseWriter, r *http.Request) {
+	userIdCtx := r.Context().Value("id")
+
+	idStr := fmt.Sprint(userIdCtx)
+	idInt, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		http.Error(w, "ID tidak valid", http.StatusBadRequest)
+		return
+	}
+
+	pulsa, err := service.CheckPulsa(uint(idInt))
+	if err != nil {
+		http.Error(w, "Gagal mengambil data pulsa", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "Sisa Pulsa Anda: Rp%.2f", pulsa)
 }
