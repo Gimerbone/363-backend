@@ -19,7 +19,6 @@ func CreateAnonymousUser() (model.Customers, error) {
 }
 
 func BuyPackage(req model.Penawarans, userID uint) (model.Kuotas, error) {
-
 	paket := model.Kuotas{
 		Jumlah:  req.Jumlah,
 		User_id: int(userID),
@@ -54,7 +53,7 @@ func BuyPackage(req model.Penawarans, userID uint) (model.Kuotas, error) {
 
 func ShowPenawaran(jenis string) ([]model.Penawarans, error) {
 	var Penawaran []model.Penawarans
-	err := initializer.DB.Where("jenis = ?", jenis).Find(&Penawaran).Error
+	err := initializer.DB.Where("jenis = ?", jenis).Limit(10).Find(&Penawaran).Error
 	if err != nil {
 		return Penawaran, err
 	}

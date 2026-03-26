@@ -85,7 +85,7 @@ func USSDHandler(w http.ResponseWriter, r *http.Request) {
 				currentOffers = list
 				ussd.Step = 1
 				data := ussd
-				updateUSSDCookie(w, r, data)
+				updateUSSDCookie(w, data)
 
 				conn.WriteJSON(USSDResponse{
 					Description: "Pilih paket yang ingin dibeli:",
@@ -129,7 +129,7 @@ func USSDHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func updateUSSDCookie(w http.ResponseWriter, r *http.Request, USSD model.USSDCookie) {
+func updateUSSDCookie(w http.ResponseWriter, USSD model.USSDCookie) {
 	jsonBytes, _ := json.Marshal(USSD)
 	cookie := &http.Cookie{
 		Name:     "ussd_state",
@@ -146,7 +146,7 @@ func formatMenu(penawaran []model.Penawarans) []string {
 	for _, p := range penawaran {
 		// Asumsi p.Jumlah dalam Byte, kita ubah ke GB
 		gb := p.Jumlah / 1000000000
-		m = append(m, fmt.Sprintf("%.1fGB/%dHr/Rp%.0f", gb, p.Durasi, p.Harga))
+		m = append(m, fmt.Sprintf("%dGB/%dHr/Rp%.0f", gb, p.Durasi, p.Harga))
 	}
 	return m
 }
