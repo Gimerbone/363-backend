@@ -20,15 +20,15 @@ func CreateAnonymousUser() (model.Customers, error) {
 
 func BuyPackage(req model.Penawarans, userID uint) (model.Kuotas, error) {
 	paket := model.Kuotas{
-		Jumlah:  req.Jumlah,
-		User_id: int(userID),
-		Durasi:  time.Now().Add(time.Duration(req.Durasi) * time.Hour),
-		Jenis:   req.Jenis,
+		Jumlah:             req.Jumlah,
+		User_id:            int(userID),
+		Tanggal_kadaluarsa: time.Now().Add(time.Duration(req.Durasi) * time.Hour),
+		Jenis:              req.Jenis,
 	}
 
 	tx := initializer.DB.Begin()
 	var user model.Customers
-	err := initializer.DB.First(&user, "id = ?", userID).Error
+	err := initializer.DB.First(&user, "user_id = ?", userID).Error
 	if err != nil {
 		return paket, err
 	}
@@ -39,11 +39,13 @@ func BuyPackage(req model.Penawarans, userID uint) (model.Kuotas, error) {
 	user.Jumlah_pulsa = user.Jumlah_pulsa - req.Harga
 	err = tx.Save(&user).Error
 	if err != nil {
+		tx.Rollback()
 		return paket, err
 	}
 
 	err = tx.Create(&paket).Error
 	if err != nil {
+		tx.Rollback()
 		return paket, err
 	}
 	tx.Commit()
@@ -67,7 +69,7 @@ func ShowPenawaran(jenis string) ([]model.Penawarans, error) {
 func CheckKuota(user uint) (int, error) {
 	var paket []model.Kuotas
 	var total int = 0
-	err := initializer.DB.Where("id = ?", user).Find(&paket).Error
+	err := initializer.DB.Where("user_id = ?", user).Find(&paket).Error
 	if err != nil {
 		return 0, err
 	}
@@ -79,7 +81,7 @@ func CheckKuota(user uint) (int, error) {
 
 func CheckPulsa(user uint) (float64, error) {
 	var Pulsa float64
-	err := initializer.DB.Model(&model.Customers{}).Select("pulsa").Where("id = ?", user).Scan(&Pulsa).Error
+	err := initializer.DB.Model(&model.Customers{}).Select("jumlah_pulsa").Where("user_id = ?", user).Scan(&Pulsa).Error
 	if err != nil {
 		return 0, err
 	}

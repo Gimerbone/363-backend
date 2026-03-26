@@ -14,11 +14,11 @@ type Customers struct {
 }
 
 type Kuotas struct {
-	Id_kuota int       `gorm:"column:id_kuota;primaryKey;autoIncrement"`
-	User_id  int       `gorm:"column:user_id;not null;"`
-	Jumlah   int       `gorm:"column:jumlah;not null"`
-	Durasi   time.Time `gorm:"column:durasi;not null"`
-	Jenis    string    `gorm:"column:jenis;not null"`
+	Id_kuota           int       `gorm:"column:id_kuota;primaryKey;autoIncrement"`
+	User_id            int       `gorm:"column:user_id;not null;"`
+	Jumlah             int       `gorm:"column:jumlah;not null"`
+	Tanggal_kadaluarsa time.Time `gorm:"column:tanggal_kadaluarsa;not null"`
+	Jenis              string    `gorm:"column:jenis;not null"`
 }
 
 type Penawarans struct {

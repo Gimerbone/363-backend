@@ -16,12 +16,13 @@ type USSDResponse struct {
 	End         bool     `json:"end"`
 }
 
-func CloseAndReset(conn *websocket.Conn, message string) {
+func CloseAndReset(conn *websocket.Conn, ussd model.USSDCookie, message string) {
 	res := USSDResponse{
 		Description: message,
 		Menu:        []string{},
 		End:         true,
 	}
+	ussd.Step = 0
 	conn.WriteJSON(res)
 	conn.Close()
 }
@@ -38,21 +39,20 @@ func USSDHandler(w http.ResponseWriter, r *http.Request) {
 
 	ussd, ok := r.Context().Value("ussd").(model.USSDCookie)
 	if !ok {
-		CloseAndReset(conn, "Sesi tidak valid.")
+		CloseAndReset(conn, ussd, "Sesi tidak valid.")
 		return
 	}
 
 	// State internal
-	ussd.Step = 0
 	var currentOffers []model.Penawarans
 
 	// --- INISIALISASI: Kirim Menu Utama saat pertama kali buka ---
 	initialMenu := USSDResponse{
 		Description: "Layanan USSD *858#",
 		Menu: []string{
-			"1.Hot Promo", "2.Internet Harian", "3.Internet Mingguan",
-			"4.Internet Bulanan", "5.Combo Internet + Telpon", "6.Paket Malam",
-			"7.Paket Game & Streaming", "8.Cek Pulsa", "9.Cek Kuota",
+			"Hot Promo", "Internet Harian", "Internet Mingguan",
+			"Internet Bulanan", "Combo Internet + Telpon", "Paket Malam",
+			"Paket Game & Streaming", "Cek Pulsa", "Cek Kuota",
 		},
 		End: false,
 	}
@@ -72,13 +72,13 @@ func USSDHandler(w http.ResponseWriter, r *http.Request) {
 			switch req.Option {
 			case 1, 2, 3, 4, 5, 6, 7:
 				categories := map[int]string{
-					1: "promo", 2: "harian", 3: "mingguan",
-					4: "bulanan", 5: "combo", 6: "malam", 7: "game",
+					1: "Hot Promo", 2: "Internet Harian", 3: "Internet Mingguan",
+					4: "Internet Bulanan", 5: "Combo Internet + Telpon", 6: "Paket Malam", 7: "Paket Game & Streaming",
 				}
 
 				list, err := service.ShowPenawaran(categories[req.Option])
 				if err != nil {
-					CloseAndReset(conn, "Maaf, paket tidak tersedia saat ini.")
+					CloseAndReset(conn, ussd, "Maaf, paket tidak tersedia saat ini.")
 					return
 				}
 
@@ -95,16 +95,16 @@ func USSDHandler(w http.ResponseWriter, r *http.Request) {
 
 			case 8: // Cek Pulsa
 				pulsa, _ := service.CheckPulsa(ussd.UserId)
-				CloseAndReset(conn, fmt.Sprintf("Sisa Pulsa Anda: Rp%.2f", pulsa))
+				CloseAndReset(conn, ussd, fmt.Sprintf("Sisa Pulsa Anda: Rp%.2f", pulsa))
 				return
 
 			case 9: // Cek Kuota
 				kuota, _ := service.CheckKuota(ussd.UserId)
-				CloseAndReset(conn, fmt.Sprintf("Sisa Kuota Anda: %.2f GB", kuota/1000000000))
+				CloseAndReset(conn, ussd, fmt.Sprintf("Sisa Kuota Anda: %.2f GB", float64(kuota)/1000000000))
 				return
 
 			default:
-				CloseAndReset(conn, "Pilihan tidak valid.")
+				CloseAndReset(conn, ussd, "Pilihan tidak valid.")
 				return
 			}
 
@@ -112,7 +112,7 @@ func USSDHandler(w http.ResponseWriter, r *http.Request) {
 			// --- LOGIKA STEP 1 (Sama dengan kode kamu) ---
 			index := req.Option - 1
 			if index < 0 || index >= len(currentOffers) {
-				CloseAndReset(conn, "Pilihan paket tidak valid.")
+				CloseAndReset(conn, ussd, "Pilihan paket tidak valid.")
 				return
 			}
 
@@ -120,9 +120,9 @@ func USSDHandler(w http.ResponseWriter, r *http.Request) {
 			_, err := service.BuyPackage(selectedPackage, ussd.UserId)
 
 			if err != nil {
-				CloseAndReset(conn, "Gagal: "+err.Error())
+				CloseAndReset(conn, ussd, "Gagal: "+err.Error())
 			} else {
-				CloseAndReset(conn, fmt.Sprintf("Terima kasih! Paket %s Anda sudah aktif.\nSelamat menikmati!", selectedPackage.Jenis))
+				CloseAndReset(conn, ussd, fmt.Sprintf("Terima kasih! Paket %s Anda sudah aktif.\nSelamat menikmati!", selectedPackage.Jenis))
 			}
 			return
 		}

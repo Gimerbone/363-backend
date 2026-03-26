@@ -4,6 +4,7 @@ import (
 	"363project/controller/service"
 	"363project/model"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 )
@@ -23,9 +24,10 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 				Step:   0,
 			}
 			jsonBytes, _ := json.Marshal(&cookieData)
+			encoded := base64.StdEncoding.EncodeToString(jsonBytes)
 			http.SetCookie(w, &http.Cookie{
 				Name:     "ussd_state",
-				Value:    string(jsonBytes),
+				Value:    encoded,
 				Path:     "/",
 				HttpOnly: true,
 				MaxAge:   300,
@@ -37,7 +39,13 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		var cookieData model.USSDCookie
-		err = json.Unmarshal([]byte(cookie.Value), &cookieData)
+
+		decoded, err := base64.StdEncoding.DecodeString(cookie.Value)
+		if err != nil {
+			http.Error(w, "Cookie tidak valid", 400)
+			return
+		}
+		err = json.Unmarshal(decoded, &cookieData)
 		if err != nil {
 			http.Error(w, "Cookie tidak valid", 400)
 			return
